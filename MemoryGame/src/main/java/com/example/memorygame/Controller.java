@@ -25,12 +25,13 @@ public class Controller implements Initializable {
     int attemptCounter = 0;
 
     ArrayList<Integer> randomizedNumbers = new ArrayList<>();
-    ArrayList<Integer> clickedTilesValue = new ArrayList<>();
-    ArrayList<Integer> clickedTiles = new ArrayList<>();
-    List<ImageView> tiles = new ArrayList<>();
+    ArrayList<Tile> clickedTiles = new ArrayList<>();
+    List<ImageView> imageViews = new ArrayList<>();
+    List<Tile> tiles = new ArrayList<>();
     List<ImageView> disabledTiles = new ArrayList<>();
     boolean gameEndedByUser = false;
     Timer timer;
+    Integer timerHelper = 0;
 
     @FXML
     private Label attemptsLabel;
@@ -99,7 +100,74 @@ public class Controller implements Initializable {
     @FXML
     void clickOnTile(MouseEvent event) {
         tileNumber = Integer.parseInt(event.getSource().toString().split("e")[3].split(",")[0]);
-        clickFunction(tileNumber);
+        clickFunction(tiles.get(tileNumber-1));
+    }
+
+    void clickFunction(Tile tile) {
+        timerHelper++;
+        if (timerHelper == 1){
+            memoryGameTimer();
+        }
+        clickCounter++;
+        if(!tile.isRevealed()){
+            tile.setRevealed(true);
+            imageViews.get(tile.getId()-1).setImage(tile.getImage());
+        }
+        if(clickCounter==2){
+            clickCounter = 0;
+            checkMatches();
+            attemptCounter++;
+            attemptsLabel.setText(String.valueOf(attemptCounter));
+        }
+
+
+    }
+    void checkMatches() {
+        for (Tile tile : tiles) {
+            if (tile.isRevealed()) {
+                clickedTiles.add(tile);
+            }
+        }
+
+        if(Objects.equals(clickedTiles.get(0).getImage().getUrl(), clickedTiles.get(1).getImage().getUrl())){
+            clickedTiles.get(0).setFound(true);
+            clickedTiles.get(1).setFound(true);
+            matches++;
+            matchesLabel.setText(String.valueOf(matches));
+        }
+        else {
+            clickedTiles.get(0).setFound(false);
+            clickedTiles.get(1).setFound(false);
+            showTilesForOneSec(imageViews.get(clickedTiles.get(0).getId()-1),imageViews.get(clickedTiles.get(1).getId()-1));
+        }
+        if (matches==8){
+            win1.setImage(new Image("file:images/win.gif"));
+            win2.setImage(new Image("file:images/win.gif"));
+        }
+        clickedTiles.get(0).setRevealed(false);
+        clickedTiles.get(1).setRevealed(false);
+        clickedTiles.clear();
+
+
+    }
+
+    void showTilesForOneSec(ImageView t1, ImageView t2) {
+        for (ImageView tile : imageViews) {
+            tile.setDisable(true);
+        }
+        Timer oneSecDelay = new Timer();
+        oneSecDelay.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                t1.setImage(new Image("file:images/0.png"));
+                t2.setImage(new Image("file:images/0.png"));
+                for (ImageView tile : imageViews) {
+                    tile.setDisable(disabledTiles.contains(tile));
+                }
+            }
+        }, 1000);
+
+
     }
 
     @FXML
@@ -111,75 +179,47 @@ public class Controller implements Initializable {
 
     @FXML
     void startNewGame() {
-            if (timer!= null){
-                timer.cancel();
-                timer.purge();
-            }
-            gameEndedByUser = true;
-            randomizedNumbers.clear();
-            disabledTiles.clear();
-            clickedTilesValue.clear();
-            clickedTiles.clear();
-            generateNums();
-            setDefaultImg();
-            second = 0;
-            minute = 0;
-            matches = 0;
-            clickCounter = 0;
-            attemptCounter = 0;
-            matchesLabel.setText(String.valueOf(matches));
-            attemptsLabel.setText(String.valueOf(attemptCounter));
-            timerLabel.setText("00:00");
-            for (ImageView tile : tiles) {
-                tile.setDisable(false);
-            }
-            win1.setImage(null);
-            win2.setImage(null);
-    }
 
-    void clickFunction(int tileNumber) {
-        clickCounter++;
-        if (clickCounter == 1){
-            memoryGameTimer();
+        if (timer!= null){
+            timer.cancel();
+            timer.purge();
         }
-        tiles.get(tileNumber - 1).setImage(new Image("file:images/" + randomizedNumbers.get(tileNumber - 1) + ".png"));
-        clickedTilesValue.add(randomizedNumbers.get(tileNumber - 1));
-        clickedTiles.add(tileNumber);
-        tiles.get(tileNumber - 1).setDisable(true);
-        checkMatches();
+        gameEndedByUser = true;
+        randomizedNumbers.clear();
+        disabledTiles.clear();
+        clickedTiles.clear();
+        tiles.clear();
+        generateNums();
+        addTilesToArraylist();
+        showTiles();
+        second = 0;
+        minute = 0;
+        matches = 0;
+        clickCounter = 0;
+        attemptCounter = 0;
+        timerHelper = 0;
+        matchesLabel.setText(String.valueOf(matches));
+        attemptsLabel.setText(String.valueOf(attemptCounter));
+        timerLabel.setText("00:00");
+        for (ImageView tile : imageViews) {
+            tile.setDisable(false);
+        }
+        win1.setImage(null);
+        win2.setImage(null);
     }
 
     void addTilesToArraylist() {
-        tiles = List.of(tile1,tile2,tile3,tile4,tile5,tile6,tile7,tile8,tile9,tile10,tile11,tile12,tile13,tile14,tile15,tile16);
-    }
-
-    void checkMatches() {
-        int tileNum1;
-        int tileNum2;
-        if (clickedTilesValue.size() == 2) {
-            attemptCounter++;
-            attemptsLabel.setText(String.valueOf(attemptCounter));
-            tileNum1 = clickedTilesValue.get(0);
-            tileNum2 = clickedTilesValue.get(1);
-            if (tileNum1 != tileNum2) {
-                showTilesForOneSec(tiles.get(clickedTiles.get(0) - 1), tiles.get(clickedTiles.get(1) - 1));
-            } else if ((!Objects.equals(clickedTiles.get(0), clickedTiles.get(1)))) {
-                matches++;
-                matchesLabel.setText(String.valueOf(matches));
-                tiles.get(clickedTiles.get(0) - 1).setDisable(true);
-                tiles.get(clickedTiles.get(1) - 1).setDisable(true);
-                disabledTiles.add(tiles.get(clickedTiles.get(0) - 1));
-                disabledTiles.add(tiles.get(clickedTiles.get(1) - 1));
-            }else {
-                tiles.get(clickedTiles.get(0) - 1).setImage(new Image("file:images/0.png"));
-                tiles.get(clickedTiles.get(1) - 1).setImage(new Image("file:images/0.png"));
-            }
-            clickedTilesValue.clear();
-            clickedTiles.clear();
+        for (int i = 1; i <= 16; i++) {
+            Tile t = new Tile(i);
+            t.setImage(new Image("file:images/" + randomizedNumbers.get(i-1) + ".png"));
+            tiles.add(t);
         }
-        if (matches==8){
-            win1.setImage(new Image("file:images/win.gif"));
-            win2.setImage(new Image("file:images/win.gif"));
+        imageViews = List.of(tile1,tile2,tile3,tile4,tile5,tile6,tile7,tile8,tile9,tile10,tile11,tile12,tile13,tile14,tile15,tile16);
+
+    }
+    void showTiles(){
+        for (int i = 0; i < imageViews.size(); i++) {
+            imageViews.get(i).setImage(tiles.get(i).getDefaultImage());
         }
     }
 
@@ -212,24 +252,6 @@ public class Controller implements Initializable {
         }, 0, 1000);
     }
 
-    void showTilesForOneSec(ImageView t1, ImageView t2) {
-        for (ImageView tile : tiles) {
-            tile.setDisable(true);
-        }
-        Timer oneSecDelay = new Timer();
-        oneSecDelay.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                t1.setImage(new Image("file:images/0.png"));
-                t2.setImage(new Image("file:images/0.png"));
-                for (ImageView tile : tiles) {
-                    tile.setDisable(disabledTiles.contains(tile));
-                }
-            }
-        }, 1000);
-
-    }
-
     void generateNums() {
         for (int i = 1; i <= 8; i++) {
             randomizedNumbers.add(i);
@@ -249,17 +271,13 @@ public class Controller implements Initializable {
         System.out.println("\n\n");
     }
 
-    void setDefaultImg() {
-        for (ImageView tile : tiles) {
-            tile.setImage(new Image("file:images/0.png"));
-        }
-    }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         generateNums();
         addTilesToArraylist();
-        setDefaultImg();
+        showTiles();
+
         mainStage.setOnCloseRequest(e -> System.exit(0));
     }
 }
